@@ -7,6 +7,7 @@
 class SoftwareI2C:
     def __init__(self, config, addr):
         self.addr = addr << 1
+        self.update_pin_cmd = None
         # Lookup pins
         ppins = config.get_printer().lookup_object('pins')
         scl_pin = config.get('scl_pin')
@@ -18,6 +19,7 @@ class SoftwareI2C:
             self.scl_main = scl_params['class'] = self
             self.scl_oid = self.mcu.create_oid()
             self.cmd_queue = self.mcu.alloc_command_queue()
+            self.mcu.register_config_callback(self.build_config)
         else:
             self.scl_oid = self.scl_main.scl_oid
             self.cmd_queue = self.scl_main.cmd_queue
@@ -26,22 +28,18 @@ class SoftwareI2C:
         if sda_params['chip'] != self.mcu:
             raise ppins.error("%s: scl_pin and sda_pin must be on same mcu" % (
                 config.get_name(),))
-        # Control pins
         self.mcu.add_config_cmd("config_digital_out oid=%d pin=%s"
                                 " value=%d default_value=%d max_duration=%d" % (
                                     self.sda_oid, sda_params['pin'], 1, 1, 0))
-        self.mcu.register_config_callback(self.build_config)
-        self.update_pin_cmd = None
     def build_config(self):
-        if self.scl_main is self:
-            self.mcu.add_config_cmd("config_digital_out oid=%d pin=%s value=%d"
-                                    " default_value=%d max_duration=%d" % (
-                                        self.scl_oid, self.scl_pin, 1, 1, 0))
+        self.mcu.add_config_cmd("config_digital_out oid=%d pin=%s value=%d"
+                                " default_value=%d max_duration=%d" % (
+                                    self.scl_oid, self.scl_pin, 1, 1, 0))
         self.update_pin_cmd = self.mcu.lookup_command(
             "update_digital_out oid=%c value=%c", cq=self.cmd_queue)
     def i2c_write(self, msg):
         msg = [self.addr] + msg
-        send = self.update_pin_cmd.send
+        send = self.scl_main.update_pin_cmd.send
         # Send ack
         send([self.sda_oid, 0])
         send([self.scl_oid, 0])
