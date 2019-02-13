@@ -50,7 +50,7 @@ class SoftwareI2C:
         for data in msg:
             # Transmit 8 data bits
             for i in range(8):
-                sda_next = not not (data & (1 << i))
+                sda_next = not not (data & (0x80 >> i))
                 if sda_last != sda_next:
                     sda_last = sda_next
                     send([self.sda_oid, sda_last])
