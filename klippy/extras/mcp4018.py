@@ -67,7 +67,7 @@ class SoftwareI2C:
 
 class mcp4018:
     def __init__(self, config):
-        self.i2c = SoftwareI2C(config, 0)
+        self.i2c = SoftwareI2C(config, 0x2f)
         self.scale = config.getfloat('scale', 1., above=0.)
         self.start_value = config.getfloat('wiper',
                                            minval=0., maxval=self.scale)
